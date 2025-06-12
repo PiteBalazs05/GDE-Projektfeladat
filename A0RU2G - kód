@@ -7,7 +7,7 @@ class Jarat(abc.ABC):
     def __init__(self, jaratszam: str, celallomas: str, jegyar: int, indulas_ido: datetime, kapacitas: int):
         self.jaratszam = jaratszam
         self.celallomas = celallomas
-        self.jegyár = jegyar
+        self.jegyar = jegyar
         self.indulas_ido = indulas_ido
         self.kapacitas = kapacitas
         self.foglalt_helyek = 0
@@ -24,14 +24,14 @@ class BelfoldiJarat(Jarat):
         szabad_helyek = self.kapacitas - self.foglalt_helyek
         return (f"Belföldi járat: {self.jaratszam} | Célállomás: {self.celallomas} "
                 f"| Indulás: {self.indulas_ido.strftime('%Y-%m-%d %H:%M')} "
-                f"| Ár: {self.jegyár} Ft | Szabad helyek: {szabad_helyek}/{self.kapacitas}")
+                f"| Ár: {self.jegyar} Ft | Szabad helyek: {szabad_helyek}/{self.kapacitas}")
 
 class NemzetkoziJarat(Jarat):
     def get_info(self) -> str:
         szabad_helyek = self.kapacitas - self.foglalt_helyek
         return (f"Nemzetközi járat: {self.jaratszam} | Célállomás: {self.celallomas} "
                 f"| Indulás: {self.indulas_ido.strftime('%Y-%m-%d %H:%M')} "
-                f"| Ár: {self.jegyár} Ft | Szabad helyek: {szabad_helyek}/{self.kapacitas}")
+                f"| Ár: {self.jegyar} Ft | Szabad helyek: {szabad_helyek}/{self.kapacitas}")
 
 class LegiTarsasag:
     def __init__(self, nev: str):
@@ -148,9 +148,7 @@ def main():
     rendszer.elokeszites()
 
     while True:
-        print("\n" + "=" * 20)
-        print("  REPÜLŐJEGY FOGLALÁS")
-        print("=" * 20)
+        print("\nRepülőjegyfoglalás")
         print("1. Elérhető járatok listázása")
         print("2. Jegy foglalása")
         print("3. Foglalás lemondása")
