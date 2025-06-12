@@ -1,0 +1,184 @@
+import abc
+import random
+from datetime import datetime, timedelta
+
+class Jarat(abc.ABC):
+
+    def __init__(self, jaratszam: str, celallomas: str, jegyar: int, indulas_ido: datetime, kapacitas: int):
+        self.jaratszam = jaratszam
+        self.celallomas = celallomas
+        self.jegyár = jegyar
+        self.indulas_ido = indulas_ido
+        self.kapacitas = kapacitas
+        self.foglalt_helyek = 0
+
+    def is_elerheto(self) -> bool:
+        return self.foglalt_helyek < self.kapacitas and datetime.now() < self.indulas_ido
+
+    @abc.abstractmethod
+    def get_info(self) -> str:
+        pass
+
+class BelfoldiJarat(Jarat):
+    def get_info(self) -> str:
+        szabad_helyek = self.kapacitas - self.foglalt_helyek
+        return (f"Belföldi járat: {self.jaratszam} | Célállomás: {self.celallomas} "
+                f"| Indulás: {self.indulas_ido.strftime('%Y-%m-%d %H:%M')} "
+                f"| Ár: {self.jegyár} Ft | Szabad helyek: {szabad_helyek}/{self.kapacitas}")
+
+class NemzetkoziJarat(Jarat):
+    def get_info(self) -> str:
+        szabad_helyek = self.kapacitas - self.foglalt_helyek
+        return (f"Nemzetközi járat: {self.jaratszam} | Célállomás: {self.celallomas} "
+                f"| Indulás: {self.indulas_ido.strftime('%Y-%m-%d %H:%M')} "
+                f"| Ár: {self.jegyár} Ft | Szabad helyek: {szabad_helyek}/{self.kapacitas}")
+
+class LegiTarsasag:
+    def __init__(self, nev: str):
+        self.nev = nev
+        self.jaratok = []
+
+    def add_jarat(self, jarat: Jarat):
+        self.jaratok.append(jarat)
+
+class Foglalas:
+    def __init__(self, jarat: Jarat):
+        self.foglalasi_azonosito = ''.join(random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', k=5))
+        self.jarat = jarat
+
+class FoglalasiRendszer:
+    def __init__(self):
+        self._jaratok = {}
+        self._foglalasok = {}
+        self._legitarsasagok = {}
+
+    def elokeszites(self):
+        wizzair = LegiTarsasag("WizzAir")
+        ryanair = LegiTarsasag("Ryanair")
+        self._legitarsasagok[wizzair.nev] = wizzair
+        self._legitarsasagok[ryanair.nev] = ryanair
+
+        most = datetime.now()
+        jarat1 = BelfoldiJarat("W2201", "Debrecen", 25000, most + timedelta(days=10, hours=2), 150)
+        jarat2 = BelfoldiJarat("W2830", "Szeged", 29000, most - timedelta(days=1), 150)
+        jarat3 = NemzetkoziJarat("W3450", "Róma", 71000, most + timedelta(days=15, hours=9), 200)
+        jarat4 = NemzetkoziJarat("W4120", "Párizs", 82000, most + timedelta(days=20, hours=14), 180)
+        jarat5 = NemzetkoziJarat("FR1901", "Dublin", 95000, most + timedelta(days=8, hours=7), 220)
+        jarat6 = NemzetkoziJarat("FR2024", "Barcelona", 88000, most + timedelta(days=25, hours=11), 220)
+        jarat7 = NemzetkoziJarat("W3310", "London", 65000, most + timedelta(days=12, hours=5), 200)
+
+        jarat4.foglalt_helyek = jarat4.kapacitas
+
+        wizzair.add_jarat(jarat1)
+        wizzair.add_jarat(jarat2)
+        wizzair.add_jarat(jarat3)
+        wizzair.add_jarat(jarat4)
+        wizzair.add_jarat(jarat7)
+        ryanair.add_jarat(jarat5)
+        ryanair.add_jarat(jarat6)
+
+        indulasi_jaratok = [jarat1, jarat2, jarat3, jarat4, jarat5, jarat6, jarat7]
+        for jarat in indulasi_jaratok:
+            self._jaratok[jarat.jaratszam] = jarat
+
+        for i in range(7):
+            valasztott_jarat = indulasi_jaratok[i % len(indulasi_jaratok)]
+            if valasztott_jarat.is_elerheto():
+                valasztott_jarat.foglalt_helyek += 1
+                uj_foglalas = Foglalas(valasztott_jarat)
+                self._foglalasok[uj_foglalas.foglalasi_azonosito] = uj_foglalas
+
+    def jaratok_listazasa(self):
+        print("\n--- Elérhető járatok ---")
+        if not self._jaratok:
+            print("Nincsenek elérhető járatok.")
+            return
+
+        for jarat in self._jaratok.values():
+            print(jarat.get_info())
+
+    def jegy_foglalasa(self, jaratszam: str) -> bool:
+        if jaratszam not in self._jaratok:
+            print(f"Hiba: A(z) '{jaratszam}' számú járat nem létezik.")
+            return False
+
+        jarat = self._jaratok[jaratszam]
+
+        if not jarat.is_elerheto():
+            if datetime.now() >= jarat.indulas_ido:
+                print(f"Hiba: A(z) '{jaratszam}' számú járat már elindult, nem foglalható.")
+            else:
+                print(f"Hiba: A(z) '{jaratszam}' számú járat megtelt, nem foglalható.")
+            return False
+
+        jarat.foglalt_helyek += 1
+
+        uj_foglalas = Foglalas(jarat)
+        self._foglalasok[uj_foglalas.foglalasi_azonosito] = uj_foglalas
+
+        print("\nSikeres foglalás!")
+        print(f"  Foglalási azonosító: {uj_foglalas.foglalasi_azonosito}")
+        print(f"  Járat: {jarat.jaratszam} ({jarat.celallomas})")
+        print(f"  Fizetendő összeg: {jarat.jegyár} Ft")
+        return True
+
+    def foglalas_lemondasa(self, azonosito: str) -> bool:
+        if azonosito not in self._foglalasok:
+            print(f"Hiba: A(z) '{azonosito}' azonosítójú foglalás nem található.")
+            return False
+
+        lemodando_foglalas = self._foglalasok[azonosito]
+        lemodando_foglalas.jarat.foglalt_helyek -= 1
+
+        del self._foglalasok[azonosito]
+        print(f"\nA(z) '{azonosito}' azonosítójú foglalás sikeresen lemondva.")
+        return True
+
+    def foglalasok_listazasa(self):
+        print("\n--- Aktuális foglalások ---")
+        if not self._foglalasok:
+            print("Nincsenek aktív foglalások.")
+            return
+
+        for azonosito, foglalas in self._foglalasok.items():
+            print(f"Azonosító: {azonosito} | Járat: {foglalas.jarat.jaratszam} -> {foglalas.jarat.celallomas}")
+
+def main():
+    rendszer = FoglalasiRendszer()
+    rendszer.elokeszites()
+
+    while True:
+        print("\n" + "=" * 20)
+        print("  REPÜLŐJEGY FOGLALÁS")
+        print("=" * 20)
+        print("1. Elérhető járatok listázása")
+        print("2. Jegy foglalása")
+        print("3. Foglalás lemondása")
+        print("4. Foglalásaim listázása")
+        print("5. Kilépés")
+
+        valasztas = input("Kérem, válasszon egy menüpontot: ")
+
+        if valasztas == '1':
+            rendszer.jaratok_listazasa()
+        elif valasztas == '2':
+            rendszer.jaratok_listazasa()
+            jaratszam = input("\nAdja meg a foglalni kívánt járat számát: ").upper()
+            rendszer.jegy_foglalasa(jaratszam)
+        elif valasztas == '3':
+            if not rendszer._foglalasok:
+                print("\nNincsenek aktív foglalások, amelyeket le lehetne mondani.")
+                continue
+            rendszer.foglalasok_listazasa()
+            azonosito = input("\nAdja meg a lemondani kívánt foglalás azonosítóját: ").upper()
+            rendszer.foglalas_lemondasa(azonosito)
+        elif valasztas == '4':
+            rendszer.foglalasok_listazasa()
+        elif valasztas == '5':
+            print("Viszontlátásra!")
+            break
+        else:
+            print("Hibás választás, kérem, próbálja újra.")
+
+if __name__ == "__main__":
+    main()
