@@ -119,7 +119,7 @@ class FoglalasiRendszer:
         print("\nSikeres foglalás!")
         print(f"  Foglalási azonosító: {uj_foglalas.foglalasi_azonosito}")
         print(f"  Járat: {jarat.jaratszam} ({jarat.celallomas})")
-        print(f"  Fizetendő összeg: {jarat.jegyár} Ft")
+        print(f"  Fizetendő összeg: {jarat.jegyar} Ft")
         return True
 
     def foglalas_lemondasa(self, azonosito: str) -> bool:
